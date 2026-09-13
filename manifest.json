@@ -1,0 +1,14 @@
+{
+  "name": "ROTC 체력관리 시스템",
+  "short_name": "ROTC 체력",
+  "description": "육군 학군단 체력검정 관리 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A2463",
+  "theme_color": "#0A2463",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
