@@ -703,14 +703,8 @@ var CUR_PHASE=0;
 var ACTIVE_PANEL='input';
 var DAYS=['월','화','수','목','금','토','일'];
 
-// API (Apps Script URL — 없으면 로컬 모드)
-var API_URL=(function(){
-  try{
-    var u=window.location.href;
-    if(u.indexOf('script.google.com/macros')!==-1) return u.split('?')[0];
-  }catch(e){}
-  return '';
-})();
+// API (Apps Script URL)
+var API_URL='https://script.google.com/macros/s/AKfycby3xSWzDmL4jpsnLcWy7S4hjThYJTIkQnmBOIXjxZUNXLkfVE_SqXjL95YSHpufZmg9/exec';
 
 function callAPI(action,data,cb){
   data.action=action;
