@@ -703,13 +703,56 @@ var CUR_PHASE=0;
 var ACTIVE_PANEL='input';
 var DAYS=['월','화','수','목','금','토','일'];
 
-// API (Apps Script URL)
-var API_URL='https://script.google.com/macros/s/AKfycby3xSWzDmL4jpsnLcWy7S4hjThYJTIkQnmBOIXjxZUNXLkfVE_SqXjL95YSHpufZmg9/exec';
+// 로컬 스토리지 기반 개인 기록 관리
+var API_URL='';
+
+// 사용자별 로컬 저장소
+var DB={
+  getUsers:function(){try{return JSON.parse(localStorage.getItem('rotc_users')||'{}');}catch(e){return{};}},
+  saveUsers:function(d){localStorage.setItem('rotc_users',JSON.stringify(d));},
+  getRecords:function(name){try{return JSON.parse(localStorage.getItem('rotc_rec_'+name)||'[]');}catch(e){return[];}},
+  saveRecord:function(name,rec){
+    var rs=DB.getRecords(name);
+    rs.unshift(rec);
+    localStorage.setItem('rotc_rec_'+name,JSON.stringify(rs));
+  }
+};
+
+function callAPI(action,data,cb){
+  setTimeout(function(){
+    if(action==='login'){
+      var users=DB.getUsers();
+      var name=data.name.trim();
+      if(users[name]){
+        cb({success:true,isNew:false,user:users[name]});
+      } else {
+        cb({success:true,isNew:true,user:{name:name}});
+      }
+    }
+    else if(action==='updateUser'){
+      var users=DB.getUsers();
+      users[data.name]={name:data.name,gender:data.gender,age:data.age,gradeLevel:data.gradeLevel,unit:data.unit};
+      DB.saveUsers(users);
+      cb({success:true});
+    }
+    else if(action==='saveRecord'){
+      DB.saveRecord(data.name,{date:data.date,grade:data.grade,push:data.push,sit:data.sit,runSec:data.runSec,memo:data.memo,xp:data.xp||50});
+      cb({success:true});
+    }
+    else if(action==='getRecords'){
+      var rs=DB.getRecords(data.name);
+      cb({success:true,records:rs});
+    }
+    else{cb({success:false,msg:'알 수 없는 액션'});}
+  },50);
+}
 
 function callAPI(action,data,cb){
   data.action=action;
   if(!API_URL){cb({success:true,isNew:true,user:{name:data.name||USER.name}});return;}
-  fetch(API_URL,{method:'POST',body:JSON.stringify(data),headers:{'Content-Type':'text/plain'}})
+  // GET 방식으로 CORS 우회
+  var params=Object.keys(data).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(data[k]);}).join('&');
+  fetch(API_URL+'?'+params)
     .then(function(r){return r.json();})
     .then(cb)
     .catch(function(e){cb({success:false,msg:e.message});});
@@ -733,6 +776,8 @@ function gradeOf(type,val){
 }
 
 // ── 패널 전환 ──
+function toggleDay(i){var b=document.getElementById('dpb'+i);if(b)b.style.display=b.style.display==='none'?'block':'none';}
+
 function TB(id,btn){
   // 메인 탭만 (more 하위는 goPanel)
   var mains=['input','rx','plan','gamify','exercise','more'];
@@ -1014,8 +1059,7 @@ function buildPlan(){
   var pk=(ov==='sp'||ov==='1')?'high':'low';
   var phases=PLAN[pk];
   var html='';
-  phases.forEach(function(ph,i){html+='<button class="pb'+(i===CUR_PHASE?' on':'')+'" onclick="selPhase('+i+',''+pk+'')">'+ph.lbl+'</button>';
-  });
+  phases.forEach(function(ph,i){var cls='pb'+(i===CUR_PHASE?' on':'');html+='<button class="'+cls+'" onclick="selPhase('+i+',&quot;'+pk+'&quot;)">'+ph.lbl+'</button>';});
   document.getElementById('phaseBtns').innerHTML=html;
   renderPhase(phases[CUR_PHASE]);
   buildFitt(ov);
@@ -1046,7 +1090,7 @@ function renderPhase(ph){
   ph.days.forEach(function(d,i){
     var isToday=i===todayIdx;
     var det=d.detail;
-    body+='<div class="dp"><div class="dp-hd '+d.type+'" onclick="var b=document.getElementById('dpb'+i+'');b.style.display=b.style.display==='none'?'block':'none'"><span>'+DAYS[i]+'요일 '+d.icon+' '+d.label+'</span><span style="font-size:11px;opacity:.7">'+d.int+' ▾</span></div>';
+    body+='<div class="dp"><div class="dp-hd '+d.type+'" onclick="toggleDay('+i+')">'+'<span>'+DAYS[i]+'요일 '+d.icon+' '+d.label+'</span><span style="font-size:11px;opacity:.7">'+d.int+' ▾</span></div>';
     body+='<div class="dp-body" id="dpb'+i+'" style="display:'+(isToday?'block':'none')+'">';
     if(det.table&&det.table.length>0){
       body+='<strong style="font-size:12px;color:var(--navy)">'+det.title+'</strong>';
